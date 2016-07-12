@@ -1,0 +1,65 @@
+#数据库优化路径包括系统参数调优（磁盘、网络、内存）、MySQL参数调优、查询优化、表定义优化等。
+#而线上MySQL调优的推荐是上面的逆序过程，即优先从表结构、查询语句....去逐步进行。
+#表结构、查询语句调优必须深刻理解业务。MySQL参数调优中的部分参数也需要了解业务特性，同时也有
+#部分“通用”的参数需要注意，故这里就简单分享几个关键性的参数。
+
+
+
+#设置为可用内存的1/4-1/2（Myisam直接使用操作系统的缓存来缓存数据，故要预留一部分给操作系统），同时结合SHOW GLOBAL STATUS
+#显示的Key_blocks_unused来确定合适的值。不能只参考key_reads/key_read_requests的值，因为在mysql刚启动不久，这个比例不会满足你的期望，除非mysql跑了好几个小时之后，参考此比例才有实际意义。
+key_buffer_size = <value>
+
+#默认值是0，意味着mysql并不刷新，有操作系统自己决定什么时候刷新缓存到磁盘，如果这个值比0大,
+#它指定了两次刷新到磁盘的动作之间间隔多少次二进制日志写操作。也可以设置为1来保障安全。
+#但是设置sync_binlog=1，比innodb_flush_log_at_trx_commit=1对性能的“损害”要大得多。
+#故推荐使用带有电池保护的写缓存RAID，或者SSD等。
+sync_binlog = <value>
+
+
+#Myisam每次的写操作之后就把索引变更刷新到磁盘。可以通过此参数来设置
+delay_key_write = <OFF, ON, ALL>
+
+
+################################采用复制模式部署时注意的几个参数###########################
+#复制时，设定从服务器的SQL线程数，当同步一个数据库阻塞时不会影响到其他数据库，mongoDB3.2版本中也采用多线程去做dump和restore操作
+slave-parallel-workers=2
+
+#需要同步的数据库 
+replicate-do-db=dbname1,dbname2,dbname3 
+
+#不需要同步的数据库
+replicate-ignore-db = mysql,test,information_schema,performance_schema
+
+#二进制日志的格式
+binlog-format=ROW 
+
+#启用GTID，保证slave在复制的时候不会重复执行相同的事务操作
+gtid-mode=on 
+enforce-gtid-consistency=true
+
+binlog_cache_size=4M、6M
+
+#并发控制
+concurrent_insert = <0,1,2>
+
+
+################################采用复制模式部署时注意的几个参数###########################
+
+
+#myisam_block_size，可以设置Myisam的索引块大小跟操作系统的页大小一样（尤其是写密集型负载），从而避免read-around-write。
+
+thread_stack = 512K//线程的stack大小
+back_log = 128//256,暂存的连接数
+tmp_table_size = 32M
+
+#保障服务器不会因为上层应用程序激增的连接而不堪重负！
+max_connections = <vaule>
+
+#一般不需要设置,观察threads_connected的状态变量。
+thread_cache_size = <70到200之间>
+
+#表高速缓存的大小，可以加快地访问表内容，不是为了缓存表的“文件描述符”，因为打开和关闭一个文件描述符
+#并没有你想象中的那么大开销，1秒钟可以做100万次。真正好处是，让服务器避免修改Myisam文件头来标记“正在使用中”
+table_cache = 256M
+
+open_files_limit = 65535
