@@ -17,7 +17,7 @@ innodb_data_home_dir = /var/lib/mysql
 innodb_data_file_path = ibdata1:1G;ibdata2:1G;ibdata3:1G:autoextend:max:2G
 
 #即使没有使用Myisam表，依然建议给key_buffer_size一个较小值，如32M。因为mysql自己的内部表
-使用的引擎就是Myisam，此外group by语句在需要时，MySQL服务器会创建临时表。
+#使用的引擎就是Myisam，此外group by语句在需要时，MySQL服务器会创建临时表。
 key_buffer_size = <value>
 
 #并发配置，它用来限制一次性有多少线程进入内核，0标示不限制。
