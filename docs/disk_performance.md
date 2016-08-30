@@ -80,31 +80,38 @@ count=xxx  读写块的总数量。
 ###使用sync、fsync、fdatasync，避免操作系统“写缓存”干扰测试
 =============================
 dd bs=8k count=4k if=/dev/zero of=test.log conv=fsync 
+
 dd bs=8k count=4k if=/dev/zero of=test.log conv=fdatasync
+
 dd bs=8k count=4k if=/dev/zero of=test.log oflag=dsync
+
 dd bs=8k count=4k if=/dev/zero of=test.log  默认“写缓存”启作用
+
 dd bs=8k count=4k if=/dev/zero of=test.log conv=sync   “写缓存”启作用
+
 dd bs=8k count=4k if=/dev/zero of=test.log; sync   “写缓存”启作用
 
 dd bs=8k count=4k if=/dev/zero of=test.log conv=fsync 
-加入这个参数后，dd命令执行到最后会真正执行一次“同步(sync)”操作，，这样算出来的时间才是比较符合实际使用结果的。conv=fsync表示把文件的“数据”和“metadata”都写入磁盘（metadata包括size、访问时间st_atime
-&
-st_mtime等等），因为文件的数据和metadata通常存在硬盘的不同地方，因此fsync至少需要两次IO写操作，fsync
+加入这个参数后，dd命令执行到最后会真正执行一次“同步(sync)”操作，，这样算出来的时间才是比较符合
+实际使用结果的。conv=fsync表示把文件的“数据”和“metadata”都写入磁盘（metadata包括size、访问时间st_atime& st_mtime等等），
+因为文件的数据和metadata通常存在硬盘的不同地方，因此fsync至少需要两次IO写操作，fsync
 与fdatasync相差不大。（重要，最有参考价值）
 
 dd bs=8k count=4k if=/dev/zero of=test.log conv=fdatasync
-加入这个参数后，dd命令执行到最后会真正执行一次“同步(sync)”操作，，这样算出来的时间才是比较符合实际使用结果的。conv=fdatasync表示只把文件的“数据”写入磁盘，fsync
+加入这个参数后，dd命令执行到最后会真正执行一次“同步(sync)”操作，这样算出来的时间才是比较符合实际使用结果的。conv=fdatasync表示只把文件的“数据”写入磁盘，fsync
 与fdatasync相差不大。（重要，最有参考价值）
 
 dd bs=8k count=4k if=/dev/zero of=test.log oflag=dsync
 加入这个参数后，每次读取8k后就要先把这8k写入磁盘，然后再读取下面一个8k，一共重复4K次。这是最慢的一种方式了。
 
 dd bs=8k count=4k if=/dev/zero of=test
-####没加关于操作系统“写缓存”的参数，默认“写缓存”启作用。dd先把数据写的操作系统“写缓存”，就完成了写操作。通常称为update的系统守护进程会周期性地（一般每隔30秒）调用sync函数，把“写缓存”中的数据刷入磁盘。####因为“写缓存”起作用，你会测试出一个超级快的性能。
+####没加关于操作系统“写缓存”的参数，默认“写缓存”启作用。dd先把数据写的操作系统“写缓存”，就完成了写操作。通常称为update的系统守护进程会周期性地（一般每隔30秒）调用sync函数，把“写缓存”#####中的数据刷入磁盘。####因为“写缓存”起作用，你会测试出一个超级快的性能。
 如：163840000 bytes (164 MB) copied, 0.742906 seconds, 221 MB/s
 
 dd bs=8k count=4k if=/dev/zero of=test conv=sync  
+
 conv=sync参数明确“写缓存”启作用，默认值就是conv=sync 
 
 dd bs=8k count=4k if=/dev/zero of=test; sync 
+
 与第1个完全一样，分号隔开的只是先后两个独立的命令。当sync命令准备开始往磁盘上真正写入数据的时候，前面dd命令已经把错误的“写入速度”值显示在屏幕上了。所以你还是得不到真正的写入速度。
